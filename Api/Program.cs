@@ -1,60 +1,33 @@
-﻿using Asp.Versioning;
-using Business;
-using DataAccess;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using Products.Infrastructure.Persistence;
+using Products.Infrastructure.Repositories;
+using ProductsApplication.Interfaces;
+using ProductsApplication.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add Controllers
+// 1. إضافة الـ Controllers والـ Swagger
 builder.Services.AddControllers();
-
-// 2. Register DbContext & Layer Services
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddScoped<ProductDataAccess>();
-builder.Services.AddScoped<ProductBusiness>();
-
-// 3. Configure API Versioning & ApiExplorer
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true;
-    options.ApiVersionReader = new UrlSegmentApiVersionReader();
-})
-.AddMvc()
-.AddApiExplorer(options =>
-{
-    options.GroupNameFormat = "'v'VVV";
-    options.SubstituteApiVersionInUrl = true;
-});
-
-// 4. Configure Swagger (الإصدار V1 فقط)
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Products API",
-        Version = "v1"
-    });
-});
+builder.Services.AddSwaggerGen();
+
+// 2. إعداد قاعدة البيانات المؤقتة في الذاكرة (In-Memory)
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseInMemoryDatabase("ProductsDb"));
+
+// 3. تسجيل الخدمات في الـ Dependency Injection
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ProductService>();
 
 var app = builder.Build();
 
-// 5. Configure HTTP Pipeline & Swagger UI
+// 4. إعداد الـ Pipeline والـ Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Products API V1");
-    });
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 

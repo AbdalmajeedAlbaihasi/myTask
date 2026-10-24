@@ -1,4 +1,9 @@
 ﻿namespace Api.DTOs
 {
-    public record ProductResponseDto(int Id, string Name, decimal Price, string CategoryName);
+    public class ProductResponseDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+    }
 }
