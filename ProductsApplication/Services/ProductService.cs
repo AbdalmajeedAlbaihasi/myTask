@@ -1,18 +1,23 @@
-﻿using ProductsDomain;
-using ProductsApplication.Interfaces;
+﻿using Microsoft.Extensions.Logging;
 using ProductsApplication.DTOs;
+using ProductsApplication.Interfaces;
+using ProductsDomain;
 
 namespace ProductsApplication.Services
 {
     public class ProductService 
     {
         private readonly IProductRepository _repository;
+        private readonly ILogger<ProductService> _logger;
 
-        public ProductService(IProductRepository repository)
+        public ProductService(IProductRepository repository, ILogger<ProductService> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
+        
+        
 
         public List<ProductDto> GetAll()
         {
@@ -53,6 +58,7 @@ namespace ProductsApplication.Services
             };
 
             _repository.Add(product);
+            _logger.LogInformation("Produc {ProducName} created", dto.Name);
 
             return (true, "Product added successfully.", product.Id);
         }
