@@ -2,10 +2,14 @@
 using ProductsApplication.DTOs;
 using ProductsApplication.Interfaces;
 using ProductsDomain;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ProductsApplication.Services
 {
-    public class ProductService 
+    public class ProductService
     {
         private readonly IProductRepository _repository;
         private readonly ILogger<ProductService> _logger;
@@ -16,12 +20,11 @@ namespace ProductsApplication.Services
             _logger = logger;
         }
 
-        
-        
-
-        public List<ProductDto> GetAll()
+        public async Task<List<ProductDto>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            return _repository.GetAll().Select(p => new ProductDto
+            var products = await _repository.GetAllAsync(cancellationToken);
+
+            return products.Select(p => new ProductDto
             {
                 Id = p.Id,
                 Name = p.Name,
@@ -29,9 +32,9 @@ namespace ProductsApplication.Services
             }).ToList();
         }
 
-        public ProductDto? GetById(int id)
+        public async Task<ProductDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            var product = _repository.GetById(id);
+            var product = await _repository.GetByIdAsync(id, cancellationToken);
             if (product == null) return null;
 
             return new ProductDto
@@ -42,8 +45,7 @@ namespace ProductsApplication.Services
             };
         }
 
-
-        public (bool IsSuccess, string Message, int Id) Add(CreateProductDto dto)
+        public async Task<(bool IsSuccess, string Message, int Id)> AddAsync(CreateProductDto dto, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
                 return (false, "Product name is required.", 0);
@@ -57,10 +59,43 @@ namespace ProductsApplication.Services
                 Price = dto.Price
             };
 
-            _repository.Add(product);
-            _logger.LogInformation("Produc {ProducName} created", dto.Name);
+            await _repository.AddAsync(product, cancellationToken);
+            _logger.LogInformation("Product {ProductName} created", dto.Name);
 
             return (true, "Product added successfully.", product.Id);
+        }
+
+        public async Task<(bool IsSuccess, string Message)> UpdateAsync(int id, CreateProductDto dto, CancellationToken cancellationToken = default)
+        {
+            var product = await _repository.GetByIdAsync(id, cancellationToken);
+            if (product == null)
+                return (false, "Product not found.");
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                return (false, "Product name is required.");
+
+            if (dto.Price <= 0)
+                return (false, "Product price must be greater than zero.");
+
+            product.Name = dto.Name;
+            product.Price = dto.Price;
+
+            await _repository.UpdateAsync(product, cancellationToken);
+            _logger.LogInformation("Product {ProductId} updated", id);
+
+            return (true, "Product updated successfully.");
+        }
+
+        public async Task<(bool IsSuccess, string Message)> DeleteAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var product = await _repository.GetByIdAsync(id, cancellationToken);
+            if (product == null)
+                return (false, "Product not found.");
+
+            await _repository.DeleteAsync(product, cancellationToken);
+            _logger.LogInformation("Product {ProductId} deleted", id);
+
+            return (true, "Product deleted successfully.");
         }
     }
 }
